@@ -158,7 +158,7 @@ def load_data_run_model_page():
             y = data[target]
             categorical_vars = X.select_dtypes(include=['object']).columns
             if len(categorical_vars) > 0:
-                encoder = OneHotEncoder(sparse=False)
+                encoder = OneHotEncoder(sparse_output=False)
                 encoded_vars = encoder.fit_transform(X[categorical_vars])
                 X = X.drop(categorical_vars, axis=1)
                 encoded_var_names = encoder.get_feature_names_out(categorical_vars)
@@ -268,7 +268,7 @@ def predictions_page():
                 predict_data = predict_data_original.copy()
                 categorical_vars = predict_data.select_dtypes(include=['object']).columns
                 if len(categorical_vars) > 0:
-                    encoder = OneHotEncoder(sparse=False)
+                    encoder = OneHotEncoder(sparse_output=False)
                     encoded_vars = encoder.fit_transform(predict_data[categorical_vars])
                     predict_data = predict_data.drop(categorical_vars, axis=1)
                     encoded_var_names = encoder.get_feature_names_out(categorical_vars)
