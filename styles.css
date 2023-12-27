@@ -1,0 +1,15 @@
+header {
+    visibility: hidden;
+}
+
+#MainMenu {
+    visibility: hidden;
+}
+
+/* Your custom CSS for sidebar */
+.st-emotion-cache-1oeoyp8 {
+    /* Adjust width */
+    width: 250px;
+    /* Adjust position */
+    top: 62px; /* or any value that fits your topbar height */
+}
