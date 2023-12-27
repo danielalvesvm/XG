@@ -71,4 +71,3 @@ watchdog==3.0.0
 xgboost==2.0.2
 yarg==0.1.9
 zipp==3.16.2
-sklearn==0.0.post7
