@@ -52,7 +52,6 @@ scikit-learn==1.3.2
 scipy==1.11.1
 seaborn==0.13.0
 six==1.16.0
-sklearn==0.0.post7
 smmap==5.0.0
 streamlit==1.29.0
 streamlit-antd-components==0.2.5
