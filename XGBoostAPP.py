@@ -74,7 +74,6 @@ def save_model(model, name, accuracy, fig, importances):
         "Confusion Matrix": fig,
         "Variable Importance": importances
     })
-    st.sidebar.write("Model saved successfully!")
 
 def data_manager():
     def list_files(directory='.'):
@@ -89,15 +88,15 @@ def data_manager():
         return pd.DataFrame(files)
 
 
-
+    col1, col2 = st.columns(2)
     with col2:
-        st.title("List of Files Uploaded")
+        st.header("List of Files Uploaded")
         files = list_files()  # You can specify a different directory if needed
         #st.table(files.assign(hack='').set_index('hack'))
         st.write(files)
 
     with col1:
-        st.title("Load New Data")
+        st.header("Load New Data")
         option = st.selectbox(
             'Select the csv delimiter',
             (';', ',', '/')
@@ -125,21 +124,9 @@ def data_manager():
 
 # Function for the Load Data/Run Model page
 def load_data_run_model_page():
-    st.sidebar.title("Saved Models")
-    if st.session_state.get('saved_models'):
-        selected_model_name = st.sidebar.selectbox("Select a model to view", options=[model['Name'] for model in st.session_state['saved_models']])
-        if selected_model_name:
-            selected_model = next((model for model in st.session_state['saved_models'] if model['Name'] == selected_model_name), None)
-            if selected_model:
-                st.sidebar.write("Model Details:")
-                st.sidebar.write(f"Accuracy: {selected_model['Accuracy']}")
-                st.sidebar.write("Variable Importance:")
-                st.sidebar.write(selected_model['Variable Importance'])
-                st.sidebar.write("Confusion Matrix:")
-                st.sidebar.plotly_chart(selected_model['Confusion Matrix'])
 
-    # Place the file uploader in the first column
     with col1:
+        st.header("Load Data and Run Model")
         option = st.selectbox(
             'Select the csv delimiter',
             (';', ',', '/')
@@ -242,19 +229,28 @@ def load_data_run_model_page():
         fig = st.session_state.get('fig')
         total_importances = st.session_state.get('total_importances')
         if model:
-            custom_name = st.text_input("Enter a name for the model file", value=f"Model_{len(st.session_state['saved_models']) + 1}")
+            #custom_name = st.text_input("Enter a name for the model file", value=f"Model_{len(st.session_state['saved_models']) + 1}")
             save_model(model, custom_name, accuracy, fig, total_importances)
-            st.write(f"Model {custom_name} saved")
+            st.write(f"Model {custom_name} saved!")
         else:
             st.write("No model to save. Please train a model first.")
 
     # Save Model Button with Callback
+
+    st.write("")
+    st.write("")
+    st.write("")
+    custom_name = st.text_input("Enter a name for the model file",
+                                    value=f"Model_Name")
+
     st.button("Save Model", on_click=on_save_button_click)
 
 # Function for the Predictions page
 def predictions_page():
-    st.write("Make Predictions")
-    predict_data_file = st.file_uploader("Upload a CSV file for predictions", type="csv")
+    st.header("Make Predictions")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        predict_data_file = st.file_uploader("Upload a CSV file for predictions", type="csv")
 
     if predict_data_file is not None:
         predict_data_original = pd.read_csv(predict_data_file, delimiter=';')
@@ -323,7 +319,7 @@ def predictions_page():
 #insights or models page
 def list_models(root_folder='.'):
     """List all .pkl files in the root folder."""
-    return [f for f in os.listdir(root_folder) if f.endswith('1.pkl')]
+    return [f for f in os.listdir(root_folder) if f.startswith('Model_')]
 
 def load_model(model_path):
     """Load a .pkl model."""
@@ -375,8 +371,8 @@ def calculate_difference_and_display(original, duplicate):
                 f"Difference: {difference:.2f}%</div>", unsafe_allow_html=True)
 
 def model_page():
-    st.title("Model Prediction Page")
-
+    st.header("Model Prediction Page")
+    st.text("")  # This will create a blank line
     # Initialize session state variables for storing predictions
     if 'original_prediction' not in st.session_state:
         st.session_state['original_prediction'] = 0.0
@@ -384,7 +380,10 @@ def model_page():
         st.session_state['duplicate_prediction'] = 0.0
 
     models = list_models()
-    selected_model = st.selectbox("Select a model", models)
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        selected_model = st.selectbox("Select a model", models)
+    st.text("")  # This will create a blank line
 
     if selected_model:
         model = load_model(selected_model)
