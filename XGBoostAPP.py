@@ -331,14 +331,30 @@ def load_model(model_path):
         return pickle.load(file)
 
 def get_model_variables(model):
-    """Attempt to get the variable names from the model."""
+    """Automatically identify variable names and categories from the model."""
     try:
         if hasattr(model, 'feature_names_in_'):
-            # Convert the NumPy array of feature names to a list
-            return list(model.feature_names_in_)
+            all_variables = list(model.feature_names_in_)
+            categorical_vars = {}
+            base_var_names = set()
+
+            for var in all_variables:
+                parts = var.split('_')
+                if len(parts) > 1:
+                    base_var_name = '_'.join(parts[:-1])
+                    category = parts[-1]
+                    base_var_names.add(base_var_name)
+
+                    if base_var_name not in categorical_vars:
+                        categorical_vars[base_var_name] = []
+                    categorical_vars[base_var_name].append(category)
+
+            non_categorical_vars = [var for var in all_variables if var.split('_')[0] not in base_var_names]
+
+            return non_categorical_vars, categorical_vars
     except AttributeError:
         pass
-    return None
+    return None, None
 
 def model_page():
     st.title("Model Prediction Page")
@@ -348,24 +364,43 @@ def model_page():
 
     if selected_model:
         model = load_model(selected_model)
-        variables = get_model_variables(model)
+        non_categorical_vars, categorical_vars = get_model_variables(model)
 
-        if variables:
+        if non_categorical_vars is not None or categorical_vars is not None:
             inputs = {}
-            for var in variables:
-                if "OwnerName" in var:  # Example for categorical feature
-                    # You might want to replace this with the actual categories you have
-                    inputs[var] = st.selectbox(f"{var}", options=["Adrian Valentino", "Andrew Hession", ...])
-                else:  # Assuming other variables are numerical
-                    inputs[var] = st.number_input(f"{var}", format="%f")
+
+            # Handle categorical variables with dropdowns
+            for cat_var, categories in categorical_vars.items():
+                selected_category = st.selectbox(cat_var, options=categories)
+                # Set the selected category to 1 and others to 0
+                for category in categories:
+                    inputs[f"{cat_var}_{category}"] = 1 if category == selected_category else 0
+
+            # Handle non-categorical variables
+            for var in non_categorical_vars:
+                inputs[var] = st.number_input(f"{var}", format="%f")
 
             if st.button("Predict"):
-                # Prepare the input data in the format expected by the model
-                # This depends on how your model expects input data
-                prediction = model.predict([list(inputs.values())])
-                st.write("Prediction Probability:", prediction)
+                # Debugging: Display the input values
+                st.write("Inputs:", inputs)
+
+                if hasattr(model, 'predict_proba'):
+                    probabilities = model.predict_proba([list(inputs.values())])
+                    # Debugging: Display raw probabilities
+                    st.write("Raw probabilities:", probabilities)
+
+                    prediction_probability = probabilities[0][1]  # Adjust index if needed
+                else:
+                    prediction = model.predict([list(inputs.values())])
+                    prediction_probability = prediction[0]
+
+                prediction_percentage = prediction_probability * 100
+                formatted_prediction = "{:.2f}%".format(prediction_percentage)
+
+                st.write("Prediction Probability:", formatted_prediction)
         else:
             st.write("Could not determine the variables used in the model.")
+
 
 def main():
 
