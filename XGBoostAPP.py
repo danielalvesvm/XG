@@ -356,8 +356,32 @@ def get_model_variables(model):
         pass
     return None, None
 
+def predict(model, inputs):
+    """Make a prediction based on the inputs."""
+    if hasattr(model, 'predict_proba'):
+        probabilities = model.predict_proba([list(inputs.values())])
+        prediction_probability = probabilities[0][1]  # Adjust index if needed
+    else:
+        prediction = model.predict([list(inputs.values())])
+        prediction_probability = prediction[0]
+
+    prediction_percentage = prediction_probability * 100
+    return prediction_percentage  # Return as a float for calculation
+
+def calculate_difference_and_display(original, duplicate):
+    difference = duplicate - original
+    color = 'green' if difference >= 0 else 'red'
+    st.markdown(f"<div style='background-color: {color}; padding: 10px; border-radius: 5px; color: white;'>"
+                f"Difference: {difference:.2f}%</div>", unsafe_allow_html=True)
+
 def model_page():
     st.title("Model Prediction Page")
+
+    # Initialize session state variables for storing predictions
+    if 'original_prediction' not in st.session_state:
+        st.session_state['original_prediction'] = 0.0
+    if 'duplicate_prediction' not in st.session_state:
+        st.session_state['duplicate_prediction'] = 0.0
 
     models = list_models()
     selected_model = st.selectbox("Select a model", models)
@@ -367,39 +391,52 @@ def model_page():
         non_categorical_vars, categorical_vars = get_model_variables(model)
 
         if non_categorical_vars is not None or categorical_vars is not None:
-            inputs = {}
+            col1, col2 = st.columns(2)
 
-            # Handle categorical variables with dropdowns
-            for cat_var, categories in categorical_vars.items():
-                selected_category = st.selectbox(cat_var, options=categories)
-                # Set the selected category to 1 and others to 0
-                for category in categories:
-                    inputs[f"{cat_var}_{category}"] = 1 if category == selected_category else 0
+            inputs_col1 = {}
+            with col1:
+                for cat_var, categories in categorical_vars.items():
+                    selected_category = st.selectbox(f"{cat_var} (Original)", options=categories)
+                    for category in categories:
+                        inputs_col1[f"{cat_var}_{category}"] = 1 if category == selected_category else 0
 
-            # Handle non-categorical variables
-            for var in non_categorical_vars:
-                inputs[var] = st.number_input(f"{var}", format="%f")
+                for var in non_categorical_vars:
+                    inputs_col1[var] = st.number_input(f"{var} (Original)", step=1, format="%d")
 
-            if st.button("Predict"):
-                # Debugging: Display the input values
-                st.write("Inputs:", inputs)
+                if st.button("Predict (Original)"):
+                    st.session_state['original_prediction'] = predict(model, inputs_col1)
 
-                if hasattr(model, 'predict_proba'):
-                    probabilities = model.predict_proba([list(inputs.values())])
-                    # Debugging: Display raw probabilities
-                    st.write("Raw probabilities:", probabilities)
+                st.write("Prediction Probability (Original): {:.2f}%".format(st.session_state['original_prediction']))
 
-                    prediction_probability = probabilities[0][1]  # Adjust index if needed
-                else:
-                    prediction = model.predict([list(inputs.values())])
-                    prediction_probability = prediction[0]
+            inputs_col2 = {}
+            with col2:
+                for cat_var, categories in categorical_vars.items():
+                    selected_category = next(
+                        (category for category in categories if inputs_col1.get(f"{cat_var}_{category}", 0) == 1),
+                        categories[0])
+                    selected_index = categories.index(selected_category)
+                    chosen_category = st.selectbox(f"{cat_var} (Duplicate)", options=categories, index=selected_index)
 
-                prediction_percentage = prediction_probability * 100
-                formatted_prediction = "{:.2f}%".format(prediction_percentage)
+                    for category in categories:
+                        inputs_col2[f"{cat_var}_{category}"] = 1 if category == chosen_category else 0
 
-                st.write("Prediction Probability:", formatted_prediction)
+                for var in non_categorical_vars:
+                    inputs_col2[var] = st.number_input(f"{var} (Duplicate)", value=inputs_col1[var], step=1, format="%d")
+
+                if st.button("Predict (Duplicate)"):
+                    st.session_state['duplicate_prediction'] = predict(model, inputs_col2)
+
+                st.write("Prediction Probability (Duplicate): {:.2f}%".format(st.session_state['duplicate_prediction']))
+
+            # Calculate and display the difference
+            if st.session_state['original_prediction'] and st.session_state['duplicate_prediction']:
+                calculate_difference_and_display(st.session_state['original_prediction'], st.session_state['duplicate_prediction'])
+
         else:
             st.write("Could not determine the variables used in the model.")
+
+
+
 
 
 def main():
